@@ -44,6 +44,7 @@ func main() {
 
 	handler := NewHandler(bot, bh)
 	handler.Init()
+	handler.RegisterHandlers()
 
 	done := make(chan struct{}, 1)
 	sigs := make(chan os.Signal, 1)
