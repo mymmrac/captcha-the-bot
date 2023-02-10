@@ -8,13 +8,19 @@ import (
 	tu "github.com/mymmrac/telego/telegoutil"
 )
 
-func (h *Handler) joinRequest(bot *telego.Bot, request telego.ChatJoinRequest) {
+func (h *Handler) chatJoinRequest(bot *telego.Bot, request telego.ChatJoinRequest) {
 	requestID := fmt.Sprintf("%d:%d", request.Chat.ID, request.From.ID)
 	h.requests.SetWithTTL(requestID, request, joinRequestTTL)
 
+	groupName := tu.Entity(request.Chat.Title).Bold()
+	if request.InviteLink != nil {
+		groupName.TextLink(request.InviteLink.InviteLink)
+	}
+
 	_, err := bot.SendMessage(
-		tu.Message(tu.ID(request.UserChatID),
-			"TODO: Verify request",
+		tu.MessageWithEntities(tu.ID(request.UserChatID),
+			tu.Entity("Hi "), tu.Entity(request.From.FirstName).Bold(), tu.Entity(", you sent request to join "),
+			groupName, tu.Entity("\n\nPlease verify the you are a real human by clicking button below"),
 		).WithReplyMarkup(tu.InlineKeyboard(tu.InlineKeyboardRow(
 			tu.InlineKeyboardButton("I am real!").WithCallbackData(requestID),
 		))),

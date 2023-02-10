@@ -61,7 +61,7 @@ func (h *Handler) Init() {
 
 func (h *Handler) RegisterHandlers() {
 	// ==== USER VERIFICATION ====
-	h.bh.HandleChatJoinRequest(h.joinRequest)
+	h.bh.HandleChatJoinRequest(h.chatJoinRequest)
 	h.bh.HandleCallbackQuery(h.verifyAnswer)
 	go h.requests.ExpireTTL(joinRequestTTLCheck, h.joinRequestTTLExpired)
 	h.bh.HandleMessage(h.newComer, func(update telego.Update) bool {
@@ -108,7 +108,7 @@ func (h *Handler) startCmd(bot *telego.Bot, message telego.Message) {
 		).WithReplyMarkup(
 			tu.Keyboard(tu.KeyboardRow(tu.KeyboardButton("Add me to the group").
 				WithRequestChat(&telego.KeyboardButtonRequestChat{
-					RequestID: int(rand.Int31()),
+					RequestID: rand.Int31(),
 					UserAdministratorRights: &telego.ChatAdministratorRights{
 						CanInviteUsers: true,
 					},
