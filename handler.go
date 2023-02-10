@@ -14,15 +14,11 @@ import (
 const joinRequestTTL = time.Hour
 const joinRequestTTLCheck = time.Minute * 5
 
-const chatSharedTTL = time.Minute * 10
-const chatSharedTTLCheck = time.Minute * 5
-
 type Handler struct {
-	me          *telego.User
-	bot         *telego.Bot
-	bh          *th.BotHandler
-	requests    memkey.TypedStore[string, telego.ChatJoinRequest]
-	sharedChats memkey.TypedStore[int32, telego.ChatID]
+	me       *telego.User
+	bot      *telego.Bot
+	bh       *th.BotHandler
+	requests memkey.TypedStore[string, telego.ChatJoinRequest]
 }
 
 func NewHandler(bot *telego.Bot, bh *th.BotHandler) *Handler {
@@ -75,6 +71,18 @@ func (h *Handler) Init() {
 		return update.Message.ChatShared != nil
 	})
 
+	h.bh.HandleMyChatMemberUpdated(h.addedMeToChatAsMember, func(update telego.Update) bool {
+		return update.MyChatMember.NewChatMember.MemberStatus() == telego.MemberStatusMember
+	})
+
+	// h.bh.HandleMyChatMemberUpdated(nil, func(update telego.Update) bool {
+	// 	return update.MyChatMember.NewChatMember.MemberStatus() == telego.MemberStatusAdministrator
+	// })
+
+	// h.bh.HandleMessage(nil, func(update telego.Update) bool {
+	// 	return update.Message.LeftChatMember != nil && update.Message.LeftChatMember.ID == h.me.ID
+	// })
+
 	h.bh.HandleMessage(h.unknownMsg, func(update telego.Update) bool {
 		return update.Message.Chat.Type == telego.ChatTypePrivate
 	})
@@ -83,7 +91,6 @@ func (h *Handler) Init() {
 	h.bh.HandleCallbackQuery(h.verifyAnswer)
 
 	go h.requests.ExpireTTL(joinRequestTTLCheck, h.joinRequestTTLExpired)
-	go h.sharedChats.ExpireTTL(chatSharedTTLCheck, nil)
 }
 
 func (h *Handler) startCmd(bot *telego.Bot, message telego.Message) {
@@ -91,9 +98,6 @@ func (h *Handler) startCmd(bot *telego.Bot, message telego.Message) {
 
 	chatID := tu.ID(message.Chat.ID)
 	if message.Chat.Type == telego.ChatTypePrivate {
-		shareRequestID := rand.Int31()
-		h.sharedChats.SetWithTTL(shareRequestID, chatID, chatSharedTTL)
-
 		msg = tu.MessageWithEntities(chatID,
 			tu.Entity("Hi "), tu.Entity(message.From.FirstName).Bold(), tu.Entity(", I am "),
 			tu.Entity(h.me.FirstName).Italic(),
@@ -101,7 +105,7 @@ func (h *Handler) startCmd(bot *telego.Bot, message telego.Message) {
 		).WithReplyMarkup(
 			tu.Keyboard(tu.KeyboardRow(tu.KeyboardButton("Add me to the group").
 				WithRequestChat(&telego.KeyboardButtonRequestChat{
-					RequestID: int(shareRequestID),
+					RequestID: int(rand.Int31()),
 					UserAdministratorRights: &telego.ChatAdministratorRights{
 						CanInviteUsers: true,
 					},
@@ -190,6 +194,11 @@ func (h *Handler) verifyAnswer(bot *telego.Bot, query telego.CallbackQuery) {
 	if err != nil {
 		bot.Logger().Errorf("Answer verified: %s", err)
 	}
+
+	_, err = bot.SendMessage(tu.Message(tu.ID(request.UserChatID), "TODO: Verified"))
+	if err != nil {
+		bot.Logger().Errorf("Send answer verified: %s", err)
+	}
 }
 
 func (h *Handler) joinRequestTTLExpired(_ string, request telego.ChatJoinRequest) {
@@ -215,6 +224,10 @@ func (h *Handler) joinRequestTTLExpired(_ string, request telego.ChatJoinRequest
 
 func (h *Handler) newComer(bot *telego.Bot, message telego.Message) {
 	for _, user := range message.NewChatMembers {
+		if user.IsBot {
+			continue
+		}
+
 		requestID := fmt.Sprintf("%d:%d", message.Chat.ID, user.ID)
 		request, ok := h.requests.Get(requestID)
 		if !ok {
@@ -241,20 +254,19 @@ func (h *Handler) chatShared(bot *telego.Bot, message telego.Message) {
 		return
 	}
 
+	var msg string
 	if chat.JoinByRequest {
-		return
-	}
-
-	requestID := int32(message.ChatShared.RequestID)
-	replyChatID, ok := h.sharedChats.Get(requestID)
-	if !ok {
-		replyChatID = tu.ID(chat.ID)
+		msg = "TODO: All good"
 	} else {
-		h.sharedChats.Delete(requestID)
+		msg = "TODO: Need join by request"
 	}
 
-	_, err = bot.SendMessage(tu.Message(replyChatID, "TODO: Need join by request"))
+	_, err = bot.SendMessage(tu.Message(tu.ID(message.From.ID), msg))
 	if err != nil {
 		bot.Logger().Errorf("Send need approves: %s", err)
 	}
+}
+
+func (h *Handler) addedMeToChatAsMember(bot *telego.Bot, chatMember telego.ChatMemberUpdated) {
+
 }
