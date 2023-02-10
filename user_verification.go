@@ -31,15 +31,49 @@ func (h *Handler) chatJoinRequest(bot *telego.Bot, request telego.ChatJoinReques
 }
 
 func (h *Handler) verifyAnswer(bot *telego.Bot, query telego.CallbackQuery) {
+	answer := func(text string, alert bool) {
+		ans := tu.CallbackQuery(query.ID).WithText(text)
+		ans.ShowAlert = alert
+		err := bot.AnswerCallbackQuery(ans)
+		if err != nil {
+			bot.Logger().Errorf("Answer query: %s", err)
+		}
+	}
+
+	removeButton := func() {
+		_, err := bot.EditMessageReplyMarkup(&telego.EditMessageReplyMarkupParams{
+			ChatID:      tu.ID(query.Message.Chat.ID),
+			MessageID:   query.Message.MessageID,
+			ReplyMarkup: nil,
+		})
+		if err != nil {
+			bot.Logger().Errorf("Edit button: %s", err)
+		}
+	}
+
+	updateText := func(text string, entities []telego.MessageEntity) {
+		_, err := bot.EditMessageText(&telego.EditMessageTextParams{
+			ChatID:    tu.ID(query.Message.Chat.ID),
+			MessageID: query.Message.MessageID,
+			Text:      text,
+			Entities:  entities,
+		})
+		if err != nil {
+			bot.Logger().Errorf("Edit text: %s", err)
+		}
+	}
+
 	request, ok := h.requests.Get(query.Data)
 	if !ok {
-		err := bot.AnswerCallbackQuery(tu.CallbackQuery(query.ID).WithShowAlert().WithText("TODO: Not found"))
-		if err != nil {
-			bot.Logger().Errorf("Answer not found query: %s", err)
-		}
+		answer("Sorry, your join request was not found!", true)
+		removeButton()
+		updateText("Sorry, could not find your join request, "+
+			"try joining the group again if you are not a member already", nil)
 
 		return
 	}
+
+	h.requests.Delete(query.Data)
 
 	err := bot.ApproveChatJoinRequest(&telego.ApproveChatJoinRequestParams{
 		ChatID: tu.ID(request.Chat.ID),
@@ -52,26 +86,22 @@ func (h *Handler) verifyAnswer(bot *telego.Bot, query telego.CallbackQuery) {
 
 		bot.Logger().Errorf("Approve request: %s", err)
 
-		err = bot.AnswerCallbackQuery(tu.CallbackQuery(query.ID).WithShowAlert().
-			WithText("TODO: Failed to verify or admin rejected"))
-		if err != nil {
-			bot.Logger().Errorf("Answer failed to verify: %s", err)
-		}
+		answer("Failed to verify!", true)
+		removeButton()
+		updateText("Sorry, I could not approve your join request", nil) // FIXME
 
 		return
 	}
 
-	h.requests.Delete(query.Data)
+	answer("Verified!", false)
+	removeButton()
 
-	err = bot.AnswerCallbackQuery(tu.CallbackQuery(query.ID).WithText("TODO: Verified"))
-	if err != nil {
-		bot.Logger().Errorf("Answer verified: %s", err)
+	groupName := tu.Entity(request.Chat.Title).Bold()
+	if request.InviteLink != nil {
+		groupName.TextLink(request.InviteLink.InviteLink)
 	}
-
-	_, err = bot.SendMessage(tu.Message(tu.ID(request.UserChatID), "TODO: Verified"))
-	if err != nil {
-		bot.Logger().Errorf("Send answer verified: %s", err)
-	}
+	text, entities := tu.MessageEntities(tu.Entity("Thanks for verification!\n\nWelcome to "), groupName)
+	updateText(text, entities)
 }
 
 func (h *Handler) joinRequestTTLExpired(_ string, request telego.ChatJoinRequest) {
