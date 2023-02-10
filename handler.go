@@ -14,11 +14,15 @@ import (
 const joinRequestTTL = time.Hour
 const joinRequestTTLCheck = time.Minute * 5
 
+const chatSharedTTL = time.Minute * 10
+const chatSharedTTLCheck = time.Minute * 5
+
 type Handler struct {
-	me       *telego.User
-	bot      *telego.Bot
-	bh       *th.BotHandler
-	requests memkey.TypedStore[string, telego.ChatJoinRequest]
+	me          *telego.User
+	bot         *telego.Bot
+	bh          *th.BotHandler
+	requests    memkey.TypedStore[string, telego.ChatJoinRequest]
+	sharedChats memkey.TypedStore[int32, telego.ChatID]
 }
 
 func NewHandler(bot *telego.Bot, bh *th.BotHandler) *Handler {
@@ -51,19 +55,25 @@ func (h *Handler) Init() {
 	})
 	assert(err == nil, "Set commands:", err)
 
-	// h.bot.SetMyDefaultAdministratorRights() TODO
+	err = h.bot.SetMyDefaultAdministratorRights(&telego.SetMyDefaultAdministratorRightsParams{
+		Rights: &telego.ChatAdministratorRights{
+			CanInviteUsers: true,
+		},
+		ForChannels: false,
+	})
+	assert(err == nil, "Set default administrator rights:", err)
 
 	h.bh.HandleMessage(h.startCmd, th.CommandEqual("start"))
 	h.bh.HandleMessage(h.helpCmd, th.CommandEqual("help"))
 	// h.bh.HandleMessage(nil, th.CommandEqual("pending"))
 
-	// h.bh.HandleMessage(nil, func(update telego.Update) bool {
-	// 	return len(update.Message.NewChatMembers) != 0
-	// })
+	h.bh.HandleMessage(h.newComer, func(update telego.Update) bool {
+		return len(update.Message.NewChatMembers) != 0
+	})
 
-	// h.bh.HandleMessage(nil, func(update telego.Update) bool {
-	// 	return update.Message.ChatShared != nil
-	// })
+	h.bh.HandleMessage(h.chatShared, func(update telego.Update) bool {
+		return update.Message.ChatShared != nil
+	})
 
 	h.bh.HandleMessage(h.unknownMsg, func(update telego.Update) bool {
 		return update.Message.Chat.Type == telego.ChatTypePrivate
@@ -72,7 +82,8 @@ func (h *Handler) Init() {
 	h.bh.HandleChatJoinRequest(h.joinRequest)
 	h.bh.HandleCallbackQuery(h.verifyAnswer)
 
-	go h.requests.ExpireTTL(joinRequestTTLCheck, h.ttlExpired)
+	go h.requests.ExpireTTL(joinRequestTTLCheck, h.joinRequestTTLExpired)
+	go h.sharedChats.ExpireTTL(chatSharedTTLCheck, nil)
 }
 
 func (h *Handler) startCmd(bot *telego.Bot, message telego.Message) {
@@ -80,6 +91,9 @@ func (h *Handler) startCmd(bot *telego.Bot, message telego.Message) {
 
 	chatID := tu.ID(message.Chat.ID)
 	if message.Chat.Type == telego.ChatTypePrivate {
+		shareRequestID := rand.Int31()
+		h.sharedChats.SetWithTTL(shareRequestID, chatID, chatSharedTTL)
+
 		msg = tu.MessageWithEntities(chatID,
 			tu.Entity("Hi "), tu.Entity(message.From.FirstName).Bold(), tu.Entity(", I am "),
 			tu.Entity(h.me.FirstName).Italic(),
@@ -87,7 +101,7 @@ func (h *Handler) startCmd(bot *telego.Bot, message telego.Message) {
 		).WithReplyMarkup(
 			tu.Keyboard(tu.KeyboardRow(tu.KeyboardButton("Add me to the group").
 				WithRequestChat(&telego.KeyboardButtonRequestChat{
-					RequestID: int(rand.Int31()),
+					RequestID: int(shareRequestID),
 					UserAdministratorRights: &telego.ChatAdministratorRights{
 						CanInviteUsers: true,
 					},
@@ -178,7 +192,7 @@ func (h *Handler) verifyAnswer(bot *telego.Bot, query telego.CallbackQuery) {
 	}
 }
 
-func (h *Handler) ttlExpired(_ string, request telego.ChatJoinRequest) {
+func (h *Handler) joinRequestTTLExpired(_ string, request telego.ChatJoinRequest) {
 	if request.UserChatID == 0 {
 		return
 	}
@@ -196,5 +210,51 @@ func (h *Handler) ttlExpired(_ string, request telego.ChatJoinRequest) {
 	})
 	if err != nil {
 		h.bot.Logger().Errorf("Decline request: %s", err)
+	}
+}
+
+func (h *Handler) newComer(bot *telego.Bot, message telego.Message) {
+	for _, user := range message.NewChatMembers {
+		requestID := fmt.Sprintf("%d:%d", message.Chat.ID, user.ID)
+		request, ok := h.requests.Get(requestID)
+		if !ok {
+			return
+		}
+
+		_, err := bot.SendMessage(tu.Message(tu.ID(request.UserChatID),
+			"TODO: Accepted",
+		))
+		if err != nil {
+			bot.Logger().Errorf("Send accepted message: %s", err)
+		}
+
+		h.requests.Delete(requestID)
+	}
+}
+
+func (h *Handler) chatShared(bot *telego.Bot, message telego.Message) {
+	chat, err := bot.GetChat(&telego.GetChatParams{
+		ChatID: tu.ID(message.ChatShared.ChatID),
+	})
+	if err != nil {
+		bot.Logger().Errorf("Get chat: %s", err)
+		return
+	}
+
+	if chat.JoinByRequest {
+		return
+	}
+
+	requestID := int32(message.ChatShared.RequestID)
+	replyChatID, ok := h.sharedChats.Get(requestID)
+	if !ok {
+		replyChatID = tu.ID(chat.ID)
+	} else {
+		h.sharedChats.Delete(requestID)
+	}
+
+	_, err = bot.SendMessage(tu.Message(replyChatID, "TODO: Need join by request"))
+	if err != nil {
+		bot.Logger().Errorf("Send need approves: %s", err)
 	}
 }
