@@ -49,23 +49,13 @@ func (h *Handler) verifyAnswer(bot *telego.Bot, query telego.CallbackQuery) {
 		}
 	}
 
-	removeButton := func() {
-		_, err := bot.EditMessageReplyMarkup(&telego.EditMessageReplyMarkupParams{
-			ChatID:      tu.ID(query.Message.Chat.ID),
-			MessageID:   query.Message.MessageID,
-			ReplyMarkup: nil,
-		})
-		if err != nil {
-			bot.Logger().Errorf("Edit button: %s", err)
-		}
-	}
-
 	updateText := func(text string, entities []telego.MessageEntity) {
 		_, err := bot.EditMessageText(&telego.EditMessageTextParams{
-			ChatID:    tu.ID(query.Message.Chat.ID),
-			MessageID: query.Message.MessageID,
-			Text:      text,
-			Entities:  entities,
+			ChatID:      tu.ID(query.Message.Chat.ID),
+			MessageID:   query.Message.MessageID,
+			Text:        text,
+			Entities:    entities,
+			ReplyMarkup: nil,
 		})
 		if err != nil {
 			bot.Logger().Errorf("Edit text: %s", err)
@@ -75,7 +65,6 @@ func (h *Handler) verifyAnswer(bot *telego.Bot, query telego.CallbackQuery) {
 	request, ok := h.requests.Get(query.Data)
 	if !ok {
 		answer("Sorry, your join request was not found!", true)
-		removeButton()
 		updateText("Sorry, could not find your join request, "+
 			"try joining the group again if you are not a member already", nil)
 
@@ -93,7 +82,6 @@ func (h *Handler) verifyAnswer(bot *telego.Bot, query telego.CallbackQuery) {
 	if err != nil {
 		if strings.Contains(err.Error(), "HIDE_REQUESTER_MISSING") {
 			answer("Failed to approve!", false)
-			removeButton()
 			text, entities := tu.MessageEntities(
 				tu.Entity("Sorry, I could not approve your join request to "), groupName,
 				tu.Entity(", because too much time passed, or your join request no longer valid"))
@@ -105,7 +93,6 @@ func (h *Handler) verifyAnswer(bot *telego.Bot, query telego.CallbackQuery) {
 		bot.Logger().Errorf("Approve request: %s", err)
 
 		answer("Failed to approve!", true)
-		removeButton()
 		text, entities := tu.MessageEntities(
 			tu.Entity("Sorry, I could not approve your join request to "), groupName,
 		)
@@ -115,7 +102,6 @@ func (h *Handler) verifyAnswer(bot *telego.Bot, query telego.CallbackQuery) {
 	}
 
 	answer("Verified!", false)
-	removeButton()
 	text, entities := tu.MessageEntities(tu.Entity("Thanks for verification!\n\nWelcome to "), groupName)
 	updateText(text, entities)
 }

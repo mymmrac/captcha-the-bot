@@ -78,6 +78,7 @@ func (h *Handler) RegisterHandlers() {
 	h.bh.HandleMessage(h.startCmd, privateChat, th.CommandEqual("start"))
 	h.bh.HandleMessage(h.helpCmd, privateChat, th.CommandEqual("help"))
 	// h.bh.HandleMessage(nil, privateChat, th.CommandEqual("pending"))
+	h.bh.HandleMessage(h.closeText, privateChat, th.TextEqual("Close"))
 
 	// ==== GROUP MANAGEMENT ====
 	h.bh.HandleMessage(h.chatShared, func(update telego.Update) bool {
@@ -114,18 +115,24 @@ func (h *Handler) startCmd(bot *telego.Bot, message telego.Message) {
 			tu.Entity(h.me.FirstName).Italic(),
 			tu.Entity("!\nAdd me to the group and I will handle new comers.\n\nUse /help for more info."),
 		).WithReplyMarkup(
-			tu.Keyboard(tu.KeyboardRow(tu.KeyboardButton("Add me to the group").
-				WithRequestChat(&telego.KeyboardButtonRequestChat{
-					RequestID: rand.Int31(),
-					UserAdministratorRights: &telego.ChatAdministratorRights{
-						CanInviteUsers: true,
-					},
-					BotAdministratorRights: &telego.ChatAdministratorRights{
-						CanInviteUsers: true,
-					},
-					BotIsMember: true,
-				}),
-			)).WithResizeKeyboard(),
+			tu.Keyboard(
+				tu.KeyboardRow(
+					tu.KeyboardButton("Add me to the group").
+						WithRequestChat(&telego.KeyboardButtonRequestChat{
+							RequestID: rand.Int31(),
+							UserAdministratorRights: &telego.ChatAdministratorRights{
+								CanInviteUsers: true,
+							},
+							BotAdministratorRights: &telego.ChatAdministratorRights{
+								CanInviteUsers: true,
+							},
+							BotIsMember: true,
+						}),
+				),
+				tu.KeyboardRow(
+					tu.KeyboardButton("Close"),
+				),
+			).WithResizeKeyboard(),
 		)
 	} else {
 		msg = tu.Message(chatID, "TODO: Non private chat msg")
@@ -145,6 +152,14 @@ func (h *Handler) helpCmd(bot *telego.Bot, message telego.Message) {
 	))
 	if err != nil {
 		bot.Logger().Errorf("Help cmd: %s", err)
+	}
+}
+
+func (h *Handler) closeText(bot *telego.Bot, message telego.Message) {
+	_, err := bot.SendMessage(tu.Message(tu.ID(message.Chat.ID), "Closed").
+		WithReplyMarkup(tu.ReplyKeyboardRemove()))
+	if err != nil {
+		bot.Logger().Errorf("Close msg: %s", err)
 	}
 }
 
