@@ -8,26 +8,35 @@ import (
 	tu "github.com/mymmrac/telego/telegoutil"
 )
 
-func (h *Handler) chatJoinRequest(bot *telego.Bot, request telego.ChatJoinRequest) {
-	requestID := fmt.Sprintf("%d:%d", request.Chat.ID, request.From.ID)
-	h.requests.SetWithTTL(requestID, request, joinRequestTTL)
-
+func groupNameFromRequest(request telego.ChatJoinRequest) tu.MessageEntityCollection {
 	groupName := tu.Entity(request.Chat.Title).Bold()
 	if request.InviteLink != nil {
 		groupName.TextLink(request.InviteLink.InviteLink)
 	}
 
-	_, err := bot.SendMessage(
+	return groupName
+}
+
+func (h *Handler) chatJoinRequest(bot *telego.Bot, request telego.ChatJoinRequest) {
+	requestID := fmt.Sprintf("%d:%d", request.Chat.ID, request.From.ID)
+
+	msg, err := bot.SendMessage(
 		tu.MessageWithEntities(tu.ID(request.UserChatID),
 			tu.Entity("Hi "), tu.Entity(request.From.FirstName).Bold(), tu.Entity(", you sent request to join "),
-			groupName, tu.Entity("\n\nPlease verify the you are a real human by clicking button below"),
+			groupNameFromRequest(request), tu.Entity("\n\nPlease verify the you are a real human by clicking button below"),
 		).WithReplyMarkup(tu.InlineKeyboard(tu.InlineKeyboardRow(
 			tu.InlineKeyboardButton("I am real!").WithCallbackData(requestID),
 		))),
 	)
 	if err != nil {
 		bot.Logger().Errorf("Verify msg: %s", err)
+		return
 	}
+
+	h.requests.SetWithTTL(requestID, Request{
+		JoinRequest:           request,
+		VerificationMessageID: msg.MessageID,
+	}, joinRequestTTL)
 }
 
 func (h *Handler) verifyAnswer(bot *telego.Bot, query telego.CallbackQuery) {
@@ -75,50 +84,66 @@ func (h *Handler) verifyAnswer(bot *telego.Bot, query telego.CallbackQuery) {
 
 	h.requests.Delete(query.Data)
 
+	groupName := groupNameFromRequest(request.JoinRequest)
+
 	err := bot.ApproveChatJoinRequest(&telego.ApproveChatJoinRequestParams{
-		ChatID: tu.ID(request.Chat.ID),
-		UserID: request.From.ID,
+		ChatID: tu.ID(request.JoinRequest.Chat.ID),
+		UserID: request.JoinRequest.From.ID,
 	})
 	if err != nil {
 		if strings.Contains(err.Error(), "HIDE_REQUESTER_MISSING") {
-			// TODO: User was rejected by admin or too long time
+			answer("Failed to approve!", false)
+			removeButton()
+			text, entities := tu.MessageEntities(
+				tu.Entity("Sorry, I could not approve your join request to "), groupName,
+				tu.Entity(", because too much time passed, or your join request no longer valid"))
+			updateText(text, entities)
+
+			return
 		}
 
 		bot.Logger().Errorf("Approve request: %s", err)
 
-		answer("Failed to verify!", true)
+		answer("Failed to approve!", true)
 		removeButton()
-		updateText("Sorry, I could not approve your join request", nil) // FIXME
+		text, entities := tu.MessageEntities(
+			tu.Entity("Sorry, I could not approve your join request to "), groupName,
+		)
+		updateText(text, entities)
 
 		return
 	}
 
 	answer("Verified!", false)
 	removeButton()
-
-	groupName := tu.Entity(request.Chat.Title).Bold()
-	if request.InviteLink != nil {
-		groupName.TextLink(request.InviteLink.InviteLink)
-	}
 	text, entities := tu.MessageEntities(tu.Entity("Thanks for verification!\n\nWelcome to "), groupName)
 	updateText(text, entities)
 }
 
-func (h *Handler) joinRequestTTLExpired(_ string, request telego.ChatJoinRequest) {
-	if request.UserChatID == 0 {
+func (h *Handler) joinRequestTTLExpired(_ string, request Request) {
+	if request.JoinRequest.UserChatID == 0 {
 		return
 	}
 
-	_, err := h.bot.SendMessage(tu.Message(tu.ID(request.UserChatID),
-		"TODO: Rejected",
+	err := h.bot.DeleteMessage(&telego.DeleteMessageParams{
+		ChatID:    tu.ID(request.JoinRequest.UserChatID),
+		MessageID: request.VerificationMessageID,
+	})
+	if err != nil {
+		h.bot.Logger().Errorf("Delete verification msg: %s", err)
+	}
+
+	_, err = h.bot.SendMessage(tu.MessageWithEntities(tu.ID(request.JoinRequest.UserChatID),
+		tu.Entity("I didn't get verification from you in time, so your join request to "),
+		groupNameFromRequest(request.JoinRequest), tu.Entity(" is rejected, please try again"),
 	))
 	if err != nil {
-		h.bot.Logger().Errorf("Send rejected notice: %s", err)
+		h.bot.Logger().Errorf("Send rejected msg: %s", err)
 	}
 
 	err = h.bot.DeclineChatJoinRequest(&telego.DeclineChatJoinRequestParams{
-		ChatID: tu.ID(request.Chat.ID),
-		UserID: request.From.ID,
+		ChatID: tu.ID(request.JoinRequest.Chat.ID),
+		UserID: request.JoinRequest.From.ID,
 	})
 	if err != nil {
 		h.bot.Logger().Errorf("Decline request: %s", err)
@@ -137,13 +162,22 @@ func (h *Handler) newComer(bot *telego.Bot, message telego.Message) {
 			return
 		}
 
-		_, err := bot.SendMessage(tu.Message(tu.ID(request.UserChatID),
-			"TODO: Accepted",
-		))
+		h.requests.Delete(requestID)
+
+		err := bot.DeleteMessage(&telego.DeleteMessageParams{
+			ChatID:    tu.ID(request.JoinRequest.UserChatID),
+			MessageID: request.VerificationMessageID,
+		})
 		if err != nil {
-			bot.Logger().Errorf("Send accepted message: %s", err)
+			bot.Logger().Errorf("Delete verification msg: %s", err)
 		}
 
-		h.requests.Delete(requestID)
+		_, err = bot.SendMessage(tu.MessageWithEntities(tu.ID(request.JoinRequest.UserChatID),
+			tu.Entity("Your join request was approved!\n\nWelcome to "),
+			groupNameFromRequest(request.JoinRequest),
+		))
+		if err != nil {
+			bot.Logger().Errorf("Send accepted msg: %s", err)
+		}
 	}
 }

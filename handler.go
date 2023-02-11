@@ -2,6 +2,7 @@ package main
 
 import (
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/mymmrac/memkey"
@@ -13,11 +14,16 @@ import (
 const joinRequestTTL = time.Hour
 const joinRequestTTLCheck = time.Minute * 5
 
+type Request struct {
+	JoinRequest           telego.ChatJoinRequest
+	VerificationMessageID int
+}
+
 type Handler struct {
 	me       *telego.User
 	bot      *telego.Bot
 	bh       *th.BotHandler
-	requests memkey.TypedStore[string, telego.ChatJoinRequest]
+	requests memkey.TypedStore[string, Request]
 }
 
 func NewHandler(bot *telego.Bot, bh *th.BotHandler) *Handler {
@@ -89,7 +95,9 @@ func (h *Handler) RegisterHandlers() {
 
 	// ==== FALLBACK ====
 	h.bh.HandleMessage(h.unknownMsgInPrivate, privateChat)
-	h.bh.HandleMessage(h.unknownMsgAnywhere)
+	h.bh.HandleMessage(h.unknownMsgAnywhere, func(update telego.Update) bool {
+		return strings.Contains(update.Message.Text, "@"+h.me.Username)
+	})
 }
 
 func privateChat(update telego.Update) bool {
