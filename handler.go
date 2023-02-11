@@ -48,10 +48,6 @@ func (h *Handler) Init() {
 				Command:     "help",
 				Description: "Help info",
 			},
-			{
-				Command:     "pending",
-				Description: "Pending join requests",
-			},
 		},
 	})
 	assert(err == nil, "Set commands:", err)
@@ -77,7 +73,6 @@ func (h *Handler) RegisterHandlers() {
 	// ==== GENERAL COMMANDS ====
 	h.bh.HandleMessage(h.startCmd, privateChat, th.CommandEqual("start"))
 	h.bh.HandleMessage(h.helpCmd, privateChat, th.CommandEqual("help"))
-	// h.bh.HandleMessage(nil, privateChat, th.CommandEqual("pending"))
 	h.bh.HandleMessage(h.closeText, privateChat, th.TextEqual("Close"))
 
 	// ==== GROUP MANAGEMENT ====
@@ -148,7 +143,8 @@ func (h *Handler) helpCmd(bot *telego.Bot, message telego.Message) {
 	_, err := bot.SendMessage(tu.Message(tu.ID(message.Chat.ID),
 		"Once I will be added to the group, when a new users joins, "+
 			"they will be asked to verify that they are a real humans by pressing on button. "+
-			"If the user doesn't click on verify button for under 1 hour, the user will be rejected from the group.",
+			"If the user doesn't click on verify button for under 1 hour, the user will be rejected from the group."+
+			"\n\nUse /start to add me to the group",
 	))
 	if err != nil {
 		bot.Logger().Errorf("Help cmd: %s", err)
