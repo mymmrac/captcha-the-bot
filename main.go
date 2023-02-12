@@ -24,12 +24,19 @@ func main() {
 	assert(err == nil, "Generate secret:", err)
 	secretToken := fmt.Sprintf("%X", secretTokenData)
 
+	rtr := router.New()
+
+	rtr.GET(cfg.HealthPath, func(ctx *fasthttp.RequestCtx) {
+		_, _ = ctx.WriteString(time.Now().UTC().String())
+		ctx.SetStatusCode(fasthttp.StatusOK)
+	})
+
 	updates, err := bot.UpdatesViaWebhook(
 		cfg.WebhookPath,
 		telego.WithWebhookServer(telego.FastHTTPWebhookServer{
 			Logger:      bot.Logger(),
 			Server:      &fasthttp.Server{},
-			Router:      router.New(),
+			Router:      rtr,
 			SecretToken: secretToken,
 		}),
 		telego.WithWebhookSet(&telego.SetWebhookParams{

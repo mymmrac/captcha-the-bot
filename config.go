@@ -12,6 +12,7 @@ type Config struct {
 	TelegramToken string `env:"TELEGRAM_TOKEN" validate:"required"`
 	WebhookBase   string `env:"WEBHOOK_BASE"   validate:"required,url"`
 	WebhookPath   string `env:"WEBHOOK_PATH"   validate:"required,uri"`
+	HealthPath    string `env:"HEALTH_PATH"    validate:"required,uri"`
 	ListenAddress string `env:"LISTEN_ADDRESS" validate:"required,hostname_port"`
 	DebugMode     bool   `env:"DEBUG_MODE"     validate:"-"`
 }
