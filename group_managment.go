@@ -54,6 +54,13 @@ func (h *Handler) newStatusAdministrator(bot *telego.Bot, chatMember telego.Chat
 		return
 	}
 
+	if chatMember.OldChatMember.MemberStatus() == telego.MemberStatusAdministrator {
+		adminOld, okOld := chatMember.OldChatMember.(*telego.ChatMemberAdministrator)
+		if okOld && adminOld.CanInviteUsers == admin.CanInviteUsers {
+			return
+		}
+	}
+
 	groupName := tu.Entity(chatMember.Chat.Title).Bold()
 
 	if !admin.CanInviteUsers {
