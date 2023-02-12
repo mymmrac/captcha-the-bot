@@ -142,7 +142,7 @@ func (h *Handler) helpCmd(bot *telego.Bot, message telego.Message) {
 }
 
 func (h *Handler) closeText(bot *telego.Bot, message telego.Message) {
-	_, err := bot.SendMessage(tu.Message(tu.ID(message.Chat.ID), "Closed").
+	_, err := bot.SendMessage(tu.Message(tu.ID(message.Chat.ID), "Closed, use /start to open again").
 		WithReplyMarkup(tu.ReplyKeyboardRemove()))
 	if err != nil {
 		bot.Logger().Errorf("Close msg: %s", err)

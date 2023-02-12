@@ -8,7 +8,7 @@ require (
 	github.com/go-playground/validator/v10 v10.11.2
 	github.com/joho/godotenv v1.5.1
 	github.com/mymmrac/memkey v0.3.0
-	github.com/mymmrac/telego v0.20.3-0.20230210164919-beb2fa93898d
+	github.com/mymmrac/telego v0.20.3-0.20230212190629-cdae514fc167
 	github.com/valyala/fasthttp v1.44.0
 	golang.org/x/crypto v0.5.0
 )

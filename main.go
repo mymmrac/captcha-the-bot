@@ -17,7 +17,7 @@ import (
 func main() {
 	cfg := LoadConfig()
 
-	bot, err := telego.NewBot(cfg.TelegramToken, telego.WithDefaultDebugLogger())
+	bot, err := telego.NewBot(cfg.TelegramToken, telego.WithDefaultLogger(cfg.DebugMode, true))
 	assert(err == nil, "Create bot:", err)
 
 	secretTokenData, err := bcrypt.GenerateFromPassword([]byte(cfg.TelegramToken), bcrypt.DefaultCost)
@@ -35,6 +35,12 @@ func main() {
 		telego.WithWebhookSet(&telego.SetWebhookParams{
 			URL:         cfg.WebhookBase + cfg.WebhookPath,
 			SecretToken: secretToken,
+			AllowedUpdates: []string{
+				telego.MessageUpdates,
+				telego.CallbackQueryUpdates,
+				telego.MyChatMemberUpdates,
+				telego.ChatJoinRequestUpdates,
+			},
 		}),
 	)
 	assert(err == nil, "Get updates", err)
