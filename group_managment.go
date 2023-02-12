@@ -14,7 +14,7 @@ func (h *Handler) chatShared(bot *telego.Bot, message telego.Message) {
 		return
 	}
 
-	groupName := tu.Entity(chat.Title)
+	groupName := tu.Entity(chat.Title).Bold()
 
 	var text string
 	var entities []telego.MessageEntity
@@ -24,8 +24,8 @@ func (h *Handler) chatShared(bot *telego.Bot, message telego.Message) {
 			tu.Entity(", now I will handle all join requests sent by users"))
 	} else {
 		text, entities = tu.MessageEntities(tu.Entity("Successfully added me to "), groupName,
-			tu.Entity(", but the group should have "), tu.Entity("Approve to join").Bold(),
-			tu.Entity(" enabled, either I will not be able to verify new users!"))
+			tu.Entity(", but the group should have \""), tu.Entity("Approve new members").Bold().Italic(),
+			tu.Entity("\" enabled, either I will not be able to verify new users"))
 	}
 
 	_, err = bot.SendMessage(tu.Message(tu.ID(message.From.ID), text).WithEntities(entities...))
@@ -34,6 +34,63 @@ func (h *Handler) chatShared(bot *telego.Bot, message telego.Message) {
 	}
 }
 
-func (h *Handler) addedMeToChatAsMember(bot *telego.Bot, chatMember telego.ChatMemberUpdated) {
+func (h *Handler) newStatusMember(bot *telego.Bot, chatMember telego.ChatMemberUpdated) {
+	groupName := tu.Entity(chatMember.Chat.Title).Bold()
 
+	_, err := bot.SendMessage(tu.MessageWithEntities(tu.ID(chatMember.From.ID),
+		tu.Entity("My permissions changed in "), groupName,
+		tu.Entity(" and has restricted my rights to manage new comers, "+
+			"please make me an administrator with rights to "), tu.Entity("invite new users").Bold().Italic(),
+		tu.Entity(", so that I can verify them")))
+	if err != nil {
+		bot.Logger().Errorf("Send member msg: %s", err)
+	}
+}
+
+func (h *Handler) newStatusAdministrator(bot *telego.Bot, chatMember telego.ChatMemberUpdated) {
+	admin, ok := chatMember.NewChatMember.(*telego.ChatMemberAdministrator)
+	if !ok {
+		bot.Logger().Errorf("Member not administrator: %v", chatMember)
+		return
+	}
+
+	groupName := tu.Entity(chatMember.Chat.Title).Bold()
+
+	if !admin.CanInviteUsers {
+		_, err := bot.SendMessage(tu.MessageWithEntities(tu.ID(chatMember.From.ID),
+			tu.Entity("My permissions changed in "), groupName,
+			tu.Entity(" and has restricted my rights to manage new comers, "+
+				"please give me rights to "), tu.Entity("invite new users").Bold().Italic(),
+			tu.Entity(", so that I can verify them")))
+		if err != nil {
+			bot.Logger().Errorf("Send member msg: %s", err)
+		}
+
+		return
+	}
+
+	chat, err := bot.GetChat(&telego.GetChatParams{
+		ChatID: tu.ID(chatMember.Chat.ID),
+	})
+	if err != nil {
+		bot.Logger().Errorf("Get chat: %s", err)
+		return
+	}
+
+	var text string
+	var entities []telego.MessageEntity
+
+	if chat.JoinByRequest {
+		text, entities = tu.MessageEntities(tu.Entity("My permissions in "), groupName,
+			tu.Entity(" all good, now I will handle all join requests sent by users"))
+	} else {
+		text, entities = tu.MessageEntities(tu.Entity("My permissions in "), groupName,
+			tu.Entity(" all good, but the group should have \""), tu.Entity("Approve new members").Bold().Italic(),
+			tu.Entity("\" enabled, either I will not be able to verify new users"))
+	}
+
+	_, err = bot.SendMessage(tu.Message(tu.ID(chatMember.From.ID), text).WithEntities(entities...))
+	if err != nil {
+		bot.Logger().Errorf("Send admin status msg: %s", err)
+	}
 }

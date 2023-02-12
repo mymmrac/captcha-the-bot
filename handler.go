@@ -79,15 +79,12 @@ func (h *Handler) RegisterHandlers() {
 	h.bh.HandleMessage(h.chatShared, func(update telego.Update) bool {
 		return update.Message.ChatShared != nil
 	})
-	h.bh.HandleMyChatMemberUpdated(h.addedMeToChatAsMember, func(update telego.Update) bool {
+	h.bh.HandleMyChatMemberUpdated(h.newStatusMember, func(update telego.Update) bool {
 		return update.MyChatMember.NewChatMember.MemberStatus() == telego.MemberStatusMember
 	})
-	// h.bh.HandleMyChatMemberUpdated(nil, func(update telego.Update) bool {
-	// 	return update.MyChatMember.NewChatMember.MemberStatus() == telego.MemberStatusAdministrator
-	// })
-	// h.bh.HandleMessage(nil, func(update telego.Update) bool {
-	// 	return update.Message.LeftChatMember != nil && update.Message.LeftChatMember.ID == h.me.ID
-	// })
+	h.bh.HandleMyChatMemberUpdated(h.newStatusAdministrator, func(update telego.Update) bool {
+		return update.MyChatMember.NewChatMember.MemberStatus() == telego.MemberStatusAdministrator
+	})
 
 	// ==== FALLBACK ====
 	h.bh.HandleMessage(h.unknownMsgInPrivate, privateChat)
