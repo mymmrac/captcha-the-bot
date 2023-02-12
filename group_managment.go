@@ -14,16 +14,23 @@ func (h *Handler) chatShared(bot *telego.Bot, message telego.Message) {
 		return
 	}
 
-	var msg string
+	groupName := tu.Entity(chat.Title)
+
+	var text string
+	var entities []telego.MessageEntity
+
 	if chat.JoinByRequest {
-		msg = "TODO: All good"
+		text, entities = tu.MessageEntities(tu.Entity("Successfully added me to "), groupName,
+			tu.Entity(", now I will handle all join requests sent by users"))
 	} else {
-		msg = "TODO: Need join by request"
+		text, entities = tu.MessageEntities(tu.Entity("Successfully added me to "), groupName,
+			tu.Entity(", but the group should have "), tu.Entity("Approve to join").Bold(),
+			tu.Entity(" enabled, either I will not be able to verify new users!"))
 	}
 
-	_, err = bot.SendMessage(tu.Message(tu.ID(message.From.ID), msg))
+	_, err = bot.SendMessage(tu.Message(tu.ID(message.From.ID), text).WithEntities(entities...))
 	if err != nil {
-		bot.Logger().Errorf("Send need approves: %s", err)
+		bot.Logger().Errorf("Send chat shared msg: %s", err)
 	}
 }
 

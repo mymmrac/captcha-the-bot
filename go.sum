@@ -25,8 +25,6 @@ github.com/leodido/go-urn v1.2.1 h1:BqpAaACuzVSgi/VLzGZIobT2z4v53pjosyNd9Yv6n/w=
 github.com/leodido/go-urn v1.2.1/go.mod h1:zt4jvISO2HfUBqxjfIshjdMTYS56ZS/qv49ictyFfxY=
 github.com/mymmrac/memkey v0.3.0 h1:EYRlx8SBo9I996lZUgb72QSlvkF8AjyZV4dINnVa1mo=
 github.com/mymmrac/memkey v0.3.0/go.mod h1:bCOKXvk3HtHJM5cEOwM6CYS3eJOnlfznev+elSS1Ikk=
-github.com/mymmrac/telego v0.20.2 h1:rcLw1wFSf2i5onqgJLcI88YNQTmvYnWQsoK+vQ1xmPY=
-github.com/mymmrac/telego v0.20.2/go.mod h1:I427HquI6tvn2H0H+aYJB0IMAkd6LqCMZyeeQQ8UvPQ=
 github.com/mymmrac/telego v0.20.3-0.20230210164919-beb2fa93898d h1:nco8ZHsIPDlpPL4eu/kWX9l7fpAu+7gr0B4fjeb2EpY=
 github.com/mymmrac/telego v0.20.3-0.20230210164919-beb2fa93898d/go.mod h1:EVP5ZgoQG+C5Mhy6RKZdeHV7d4bSCbJb+tqTAw+5Btg=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
@@ -56,8 +54,6 @@ golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9sn
 golang.org/x/term v0.0.0-20210927222741-03fcf44c2211/go.mod h1:jbD1KX2456YbFQfuXm/mYQcufACuNUgVhRMnK/tPxf8=
 golang.org/x/text v0.3.6/go.mod h1:5Zoc/QRtKVWzQhOtBMvqHzDpF6irO9z98xDceosuGiQ=
 golang.org/x/text v0.3.7/go.mod h1:u+2+/6zg+i71rQMx5EYifcz6MCKuco9NR6JIITiCfzQ=
-golang.org/x/text v0.6.0 h1:3XmdazWV+ubf7QgHSTWeykHOci5oeekaGJBLkrkaw4k=
-golang.org/x/text v0.6.0/go.mod h1:mrYo+phRRbMaCq/xk9113O4dZlRixOauAjOtrjsXDZ8=
 golang.org/x/text v0.7.0 h1:4BRB4x83lYWy72KwLD/qYDuTu7q9PjSagHvijDw7cLo=
 golang.org/x/text v0.7.0/go.mod h1:mrYo+phRRbMaCq/xk9113O4dZlRixOauAjOtrjsXDZ8=
 golang.org/x/tools v0.0.0-20180917221912-90fa682c2a6e/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
