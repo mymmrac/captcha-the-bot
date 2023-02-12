@@ -20,10 +20,10 @@ func (h *Handler) chatShared(bot *telego.Bot, message telego.Message) {
 	var entities []telego.MessageEntity
 
 	if chat.JoinByRequest {
-		text, entities = tu.MessageEntities(tu.Entity("Successfully added me to "), groupName,
+		text, entities = tu.MessageEntities(tu.Entity("✅ Successfully added me to "), groupName,
 			tu.Entity(", now I will handle all join requests sent by users"))
 	} else {
-		text, entities = tu.MessageEntities(tu.Entity("Successfully added me to "), groupName,
+		text, entities = tu.MessageEntities(tu.Entity("❌ Successfully added me to "), groupName,
 			tu.Entity(", but the group should have \""), tu.Entity("Approve new members").Bold().Italic(),
 			tu.Entity("\" enabled, either I will not be able to verify new users"))
 	}
@@ -38,7 +38,7 @@ func (h *Handler) newStatusMember(bot *telego.Bot, chatMember telego.ChatMemberU
 	groupName := tu.Entity(chatMember.Chat.Title).Bold()
 
 	_, err := bot.SendMessage(tu.MessageWithEntities(tu.ID(chatMember.From.ID),
-		tu.Entity("My permissions changed in "), groupName,
+		tu.Entity("❌ My permissions changed in "), groupName,
 		tu.Entity(" and has restricted my rights to manage new comers, "+
 			"please make me an administrator with rights to "), tu.Entity("invite new users").Bold().Italic(),
 		tu.Entity(", so that I can verify them")))
@@ -58,7 +58,7 @@ func (h *Handler) newStatusAdministrator(bot *telego.Bot, chatMember telego.Chat
 
 	if !admin.CanInviteUsers {
 		_, err := bot.SendMessage(tu.MessageWithEntities(tu.ID(chatMember.From.ID),
-			tu.Entity("My permissions changed in "), groupName,
+			tu.Entity("❌ My permissions changed in "), groupName,
 			tu.Entity(" and has restricted my rights to manage new comers, "+
 				"please give me rights to "), tu.Entity("invite new users").Bold().Italic(),
 			tu.Entity(", so that I can verify them")))
@@ -81,10 +81,10 @@ func (h *Handler) newStatusAdministrator(bot *telego.Bot, chatMember telego.Chat
 	var entities []telego.MessageEntity
 
 	if chat.JoinByRequest {
-		text, entities = tu.MessageEntities(tu.Entity("My permissions in "), groupName,
+		text, entities = tu.MessageEntities(tu.Entity("✅ My permissions in "), groupName,
 			tu.Entity(" all good, now I will handle all join requests sent by users"))
 	} else {
-		text, entities = tu.MessageEntities(tu.Entity("My permissions in "), groupName,
+		text, entities = tu.MessageEntities(tu.Entity("❌ My permissions in "), groupName,
 			tu.Entity(" all good, but the group should have \""), tu.Entity("Approve new members").Bold().Italic(),
 			tu.Entity("\" enabled, either I will not be able to verify new users"))
 	}

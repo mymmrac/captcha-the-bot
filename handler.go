@@ -98,39 +98,31 @@ func privateChat(update telego.Update) bool {
 }
 
 func (h *Handler) startCmd(bot *telego.Bot, message telego.Message) {
-	var msg *telego.SendMessageParams
-
-	chatID := tu.ID(message.Chat.ID)
-	if message.Chat.Type == telego.ChatTypePrivate {
-		msg = tu.MessageWithEntities(chatID,
-			tu.Entity("Hi "), tu.Entity(message.From.FirstName).Bold(), tu.Entity(", I am "),
-			tu.Entity(h.me.FirstName).Italic(),
-			tu.Entity("!\nAdd me to the group and I will handle new comers.\n\nUse /help for more info."),
-		).WithReplyMarkup(
-			tu.Keyboard(
-				tu.KeyboardRow(
-					tu.KeyboardButton("Add me to the group").
-						WithRequestChat(&telego.KeyboardButtonRequestChat{
-							RequestID: rand.Int31(),
-							UserAdministratorRights: &telego.ChatAdministratorRights{
-								CanInviteUsers: true,
-							},
-							BotAdministratorRights: &telego.ChatAdministratorRights{
-								CanInviteUsers: true,
-							},
-							BotIsMember: true,
-						}),
-				),
-				tu.KeyboardRow(
-					tu.KeyboardButton("Close"),
-				),
-			).WithResizeKeyboard(),
-		)
-	} else {
-		msg = tu.Message(chatID, "TODO: Non private chat msg")
-	}
-
-	_, err := bot.SendMessage(msg)
+	_, err := bot.SendMessage(tu.MessageWithEntities(tu.ID(message.Chat.ID),
+		tu.Entity("Hi "), tu.Entity(message.From.FirstName).Bold(), tu.Entity(", I am "),
+		tu.Entity(h.me.FirstName).Italic(),
+		tu.Entity("!\nAdd me to the group with enabled "), tu.Entity("Approve new members").Bold().Italic(),
+		tu.Entity(" and I will handle new comers.\n\nUse /help for more info."),
+	).WithReplyMarkup(
+		tu.Keyboard(
+			tu.KeyboardRow(
+				tu.KeyboardButton("Add me to the group").
+					WithRequestChat(&telego.KeyboardButtonRequestChat{
+						RequestID: rand.Int31(),
+						UserAdministratorRights: &telego.ChatAdministratorRights{
+							CanInviteUsers: true,
+						},
+						BotAdministratorRights: &telego.ChatAdministratorRights{
+							CanInviteUsers: true,
+						},
+						BotIsMember: true,
+					}),
+			),
+			tu.KeyboardRow(
+				tu.KeyboardButton("Close"),
+			),
+		).WithResizeKeyboard(),
+	))
 	if err != nil {
 		bot.Logger().Errorf("Start cmd: %s", err)
 	}
@@ -141,6 +133,7 @@ func (h *Handler) helpCmd(bot *telego.Bot, message telego.Message) {
 		"Once I will be added to the group, when a new users joins, "+
 			"they will be asked to verify that they are a real humans by pressing on button. "+
 			"If the user doesn't click on verify button for under 1 hour, the user will be rejected from the group."+
+			"\n\nPleas keep in mind, that group should have request to join enabled."+
 			"\n\nUse /start to add me to the group",
 	))
 	if err != nil {
