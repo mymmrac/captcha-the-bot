@@ -1,7 +1,7 @@
 version: "3.9"
 
 services:
-  echo-bot:
+  captcha-the-bot:
     container_name: captcha-the-bot
     build:
       context: .
