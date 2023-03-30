@@ -5,7 +5,9 @@ services:
     container_name: captcha-the-bot
     build:
       context: .
-      target: release
+      target: dev
+    volumes:
+      - "./:/captcha-the-bot"
     env_file:
       - .env
     ports:
