@@ -10,7 +10,7 @@ require (
 	github.com/mymmrac/memkey v0.3.0
 	github.com/mymmrac/telego v0.21.1
 	github.com/valyala/fasthttp v1.44.0
-	golang.org/x/crypto v0.5.0
+	golang.org/x/crypto v0.17.0
 )
 
 require (
@@ -22,6 +22,6 @@ require (
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/savsgio/gotils v0.0.0-20230208104028-c358bd845dee // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	golang.org/x/sys v0.4.0 // indirect
-	golang.org/x/text v0.7.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 )
